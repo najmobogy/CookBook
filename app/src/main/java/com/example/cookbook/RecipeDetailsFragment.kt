@@ -1,59 +1,53 @@
 package com.example.cookbook
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RatingBar
+import android.widget.TextView
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [RecipeDetailsFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class RecipeDetailsFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
+    companion object {
+        fun newInstance(recipe: String): RecipeDetailsFragment {
+            val fragment = RecipeDetailsFragment()
+            val args = Bundle()
+            val data = recipe.split("|")
+            args.putString("name", data[0])
+            args.putString("ingredients", data[1])
+            args.putString("instructions", data[2])
+            args.putFloat("rating", data[3].toFloat())
+            fragment.arguments = args
+            return fragment
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_recipe_details, container, false)
-    }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_recipe_details, container, false)
+        val name = view.findViewById<TextView>(R.id.recipe_name)
+        val ingredients = view.findViewById<TextView>(R.id.recipe_ingredients)
+        val instructions = view.findViewById<TextView>(R.id.recipe_instructions)
+        val ratingBar = view.findViewById<RatingBar>(R.id.recipe_rating)
+        val sharedPreferences = requireContext().getSharedPreferences("recipes", Context.MODE_PRIVATE)
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment RecipeDetailsFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            RecipeDetailsFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+        arguments?.let {
+            name.text = it.getString("name")
+            ingredients.text = it.getString("ingredients")
+            instructions.text = it.getString("instructions")
+            ratingBar.rating = it.getFloat("rating")
+        }
+
+        ratingBar.setOnRatingBarChangeListener { _, rating, _ ->
+            val recipeName = arguments?.getString("name") ?: return@setOnRatingBarChangeListener
+            val recipes = sharedPreferences.getString("recipes", "")?.split("|")?.toMutableList() ?: return@setOnRatingBarChangeListener
+            val updatedRecipes = recipes.map {
+                val data = it.split("|")
+                if (data[0] == recipeName) "${data[0]}|${data[1]}|${data[2]}|$rating" else it
             }
+            sharedPreferences.edit().putString("recipes", updatedRecipes.joinToString("|"))?.apply()
+        }
+        return view
     }
 }
